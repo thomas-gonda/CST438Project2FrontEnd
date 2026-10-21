@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">CST438Project2FrontEnd</string>
+    <string name="com_auth0_client_id">94gaY6Y34o06T8IXuaH7fW6cCEL2S4Cr</string>
+    <string name="com_auth0_domain">dev-z34axrkoebov0qn1.us.auth0.com</string>
 </resources>

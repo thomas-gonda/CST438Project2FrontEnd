@@ -13,9 +13,12 @@ import kotlinx.coroutines.CancellationException
 @Composable
 fun GameListScreen(
     modifier: Modifier = Modifier,
+    accessTokenProvider: () -> String? = { null },
     onGameSelected: (Game) -> Unit = {}
 ) {
-    val api = remember { GameApi() }
+    val api = remember(accessTokenProvider) {
+        GameApi(accessTokenProvider = accessTokenProvider)
+    }
     var requestedPage by rememberSaveable { mutableIntStateOf(0) }
     var retryCount by remember { mutableIntStateOf(0) }
     var result by remember { mutableStateOf<GamePage?>(null) }

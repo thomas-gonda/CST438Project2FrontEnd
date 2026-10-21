@@ -16,7 +16,8 @@ data class Review(
 )
 
 class ReviewApi(
-    private val baseUrl: String = "http://10.0.2.2:8080"
+    private val baseUrl: String = BuildConfig.API_BASE_URL,
+    private val accessTokenProvider: () -> String? = { null }
 ) {
     suspend fun getReviews(gameId: Long): List<Review> =
         withContext(Dispatchers.IO) {
@@ -30,6 +31,9 @@ class ReviewApi(
                 connection.connectTimeout = 10_000
                 connection.readTimeout = 10_000
                 connection.setRequestProperty("Accept", "application/json")
+                authorizationHeader(accessTokenProvider())?.let { authorization ->
+                    connection.setRequestProperty("Authorization", authorization)
+                }
 
                 val status = connection.responseCode
                 if (status != HttpURLConnection.HTTP_OK) {

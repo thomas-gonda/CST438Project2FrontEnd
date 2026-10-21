@@ -16,14 +16,29 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        manifestPlaceholders["auth0Domain"] = "@string/com_auth0_domain"
+        manifestPlaceholders["auth0Scheme"] = "cst438project2"
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"http://10.0.2.2:8080\""
+            )
+        }
         release {
             optimization {
                 enable = false
             }
+            buildConfigField(
+                "String",
+                "API_BASE_URL",
+                "\"https://gamereview-api-gqbj.onrender.com\""
+            )
         }
     }
     compileOptions {
@@ -32,6 +47,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -44,6 +60,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.auth0.android)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
