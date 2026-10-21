@@ -15,9 +15,12 @@ fun ReviewScreen(
     gameId: Long,
     gameName: String,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    accessTokenProvider: () -> String? = { null }
 ) {
-    val api = remember { ReviewApi() }
+    val api = remember(accessTokenProvider) {
+        ReviewApi(accessTokenProvider = accessTokenProvider)
+    }
     var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
