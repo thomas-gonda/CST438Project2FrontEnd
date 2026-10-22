@@ -4,146 +4,116 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.cst438project2frontend.ui.theme.CST438Project2FrontEndTheme
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         setContent {
             CST438Project2FrontEndTheme {
                 val authManager = remember { AuthManager(applicationContext) }
-                var isAuthenticated by rememberSaveable { mutableStateOf(false) }
-                var userRole by rememberSaveable { mutableStateOf(UserRole.USER) }
-                var authError by rememberSaveable { mutableStateOf<String?>(null) }
-                var selectedGameId by rememberSaveable {
-                    mutableStateOf<Long?>(null)
-                }
-                var selectedGameName by rememberSaveable {
-                    mutableStateOf("")
-                }
-                val screenState = rememberSaveableStateHolder()
+                var signedIn by remember { mutableStateOf(false) }
+                var role by remember { mutableStateOf(UserRole.USER) }
+                var authBusy by remember { mutableStateOf(true) }
+                var authError by remember { mutableStateOf<String?>(null) }
+                val tokenProvider = remember(authManager) { { authManager.accessToken() } }
 
                 LaunchedEffect(authManager) {
-                    isAuthenticated = authManager.restoreSession()
-                    userRole = authManager.userRole()
+                    try {
+                        signedIn = authManager.restoreSession()
+                        role = authManager.userRole()
+                    } finally {
+                        authBusy = false
+                    }
                 }
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        AuthControls(
-                            isAuthenticated = isAuthenticated,
-                            userRole = userRole,
-                            errorMessage = authError,
-                            onLogin = {
-                                authError = null
-                                authManager.login(
-                                    activity = this@MainActivity,
-                                    onSuccess = {
-                                        isAuthenticated = true
-                                        userRole = authManager.userRole()
-                                    },
-                                    onFailure = { error ->
-                                        authError = error.getDescription()
-                                            ?: "Login failed. Please try again."
-                                    }
-                                )
-                            },
-                            onLogout = {
-                                authError = null
-                                authManager.logout(
-                                    activity = this@MainActivity,
-                                    onSuccess = {
-                                        isAuthenticated = false
-                                        userRole = UserRole.USER
-                                    },
-                                    onFailure = { error ->
-                                        authError = error.getDescription()
-                                            ?: "Logout failed. Please try again."
-                                    }
-                                )
+                Scaffold(modifier = Modifier.fillMaxSize()) { padding ->
+                    Column(Modifier.fillMaxSize().padding(padding)) {
+                        Surface(tonalElevation = 1.dp) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text("Game Review", style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold)
+                                    Text(
+                                        if (!signedIn) "Discover. Play. Share."
+                                        else if (role == UserRole.ADMIN) "Administrator"
+                                        else "Player account",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (authBusy) {
+                                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                                } else if (signedIn) {
+                                    TextButton(onClick = {
+                                        authBusy = true
+                                        authError = null
+                                        authManager.logout(this@MainActivity,
+                                            onSuccess = {
+                                                signedIn = false
+                                                role = UserRole.USER
+                                                authBusy = false
+                                            },
+                                            onFailure = {
+                                                authError = "Sign-out wasn't completed. Please try again."
+                                                authBusy = false
+                                            })
+                                    }) { Text("Log out") }
+                                } else {
+                                    FilledTonalButton(onClick = {
+                                        authBusy = true
+                                        authError = null
+                                        authManager.login(this@MainActivity,
+                                            onSuccess = {
+                                                signedIn = true
+                                                role = authManager.userRole()
+                                                authBusy = false
+                                            },
+                                            onFailure = {
+                                                authError = "Sign-in wasn't completed. You can try again or keep browsing."
+                                                authBusy = false
+                                            })
+                                    }) { Text("Sign in") }
+                                }
                             }
-                        )
-
-                        val gameId = selectedGameId
-                        if (gameId == null) {
-                            screenState.SaveableStateProvider("games") {
-                                GameListScreen(
-                                    modifier = Modifier.weight(1f),
-                                    accessTokenProvider = authManager::accessToken,
-                                    onGameSelected = { game ->
-                                        selectedGameName = game.name
-                                        selectedGameId = game.id
-                                    }
+                        }
+                        authError?.let { message ->
+                            Surface(color = MaterialTheme.colorScheme.errorContainer) {
+                                Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                                    TextButton(onClick = { authError = null }) { Text("Dismiss") }
+                                }
+                            }
+                        }
+                        // Changing accounts removes old private data and forms.
+                        if (!authBusy) {
+                            key(signedIn, role, authManager.accessToken()) {
+                                GameReviewPage(
+                                    signedIn = signedIn,
+                                    role = role,
+                                    accessTokenProvider = tokenProvider,
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         } else {
-                            ReviewScreen(
-                                gameId = gameId,
-                                gameName = selectedGameName,
-                                modifier = Modifier.weight(1f),
-                                accessTokenProvider = authManager::accessToken,
-                                onBack = { selectedGameId = null }
-                            )
+                            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Text("Connecting your account...", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun AuthControls(
-    isAuthenticated: Boolean,
-    userRole: UserRole,
-    errorMessage: String?,
-    onLogin: () -> Unit,
-    onLogout: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        if (isAuthenticated) {
-            Text("Signed in as ${userRole.name.lowercase().replaceFirstChar { it.uppercase() }}")
-            OutlinedButton(onClick = onLogout) {
-                Text("Log out")
-            }
-        } else {
-            Button(onClick = onLogin) {
-                Text("Log in with Auth0")
-            }
-        }
-
-        if (errorMessage != null) {
-            Text(errorMessage)
         }
     }
 }
