@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+
+    id("dev.detekt")
 }
 
 android {
@@ -56,7 +58,6 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
@@ -76,3 +77,10 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+
+detekt {
+    toolVersion = "2.0.0-alpha.6"
+    buildUponDefaultConfig = true
+    ignoreFailures = false
+}
+

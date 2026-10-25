@@ -274,6 +274,52 @@ data class PreparedEndpointRequest(
     val body: String?
 )
 
+/** Converts validated field input to the value expected by the API. */
+private fun convertFieldValue(field: EndpointField, value: String): Any = when (field.kind) {
+    InputKind.ID -> requireParsed(
+        value.toLongOrNull()?.takeIf { it > 0 },
+        "${field.label} must be a positive whole number."
+    )
+
+    InputKind.PAGE -> requireParsed(
+        value.toIntOrNull()?.takeIf { it >= 0 },
+        "Page must be zero or greater."
+    )
+
+    InputKind.SIZE -> requireParsed(
+        value.toIntOrNull()?.takeIf { it in 1..100 },
+        "Items per page must be between 1 and 100."
+    )
+
+    InputKind.RATING -> requireParsed(
+        value.toFloatOrNull()?.takeIf { it.isFinite() },
+        "Rating must be a finite number."
+    )
+
+    InputKind.PRICE -> requireParsed(
+        value.toBigDecimalOrNull()?.takeIf { it >= BigDecimal.ZERO },
+        "Price must be zero or greater."
+    )
+
+    InputKind.ROLE -> value.uppercase().also {
+        require(it in listOf("USER", "ADMIN")) {
+            "Role must be USER or ADMIN."
+        }
+    }
+
+    InputKind.TEXT -> value.also {
+        if (field.name == "comment") {
+            require(it.length <= 1000) {
+                "Comment must be 1000 characters or fewer."
+            }
+        }
+    }
+}
+
+/** Returns a parsed value or raises the same validation error as before. */
+private fun <T : Any> requireParsed(value: T?, message: String): T =
+    value ?: throw IllegalArgumentException(message)
+
 /** Validates input and constructs the request safely. */
 fun prepareEndpointRequest(
     action: EndpointAction,
@@ -294,52 +340,7 @@ fun prepareEndpointRequest(
             "${field.label} is required."
         }
 
-        val converted: Any = when (field.kind) {
-            InputKind.ID ->
-                value.toLongOrNull()?.takeIf { it > 0 }
-                    ?: throw IllegalArgumentException(
-                        "${field.label} must be a positive whole number."
-                    )
-
-            InputKind.PAGE ->
-                value.toIntOrNull()?.takeIf { it >= 0 }
-                    ?: throw IllegalArgumentException(
-                        "Page must be zero or greater."
-                    )
-
-            InputKind.SIZE ->
-                value.toIntOrNull()?.takeIf { it in 1..100 }
-                    ?: throw IllegalArgumentException(
-                        "Items per page must be between 1 and 100."
-                    )
-
-            InputKind.RATING ->
-                value.toFloatOrNull()?.takeIf { it.isFinite() }
-                    ?: throw IllegalArgumentException(
-                        "Rating must be a finite number."
-                    )
-
-            InputKind.PRICE ->
-                value.toBigDecimalOrNull()
-                    ?.takeIf { it >= BigDecimal.ZERO }
-                    ?: throw IllegalArgumentException(
-                        "Price must be zero or greater."
-                    )
-
-            InputKind.ROLE -> value.uppercase().also {
-                require(it in listOf("USER", "ADMIN")) {
-                    "Role must be USER or ADMIN."
-                }
-            }
-
-            InputKind.TEXT -> value.also {
-                if (field.name == "comment") {
-                    require(it.length <= 1000) {
-                        "Comment must be 1000 characters or fewer."
-                    }
-                }
-            }
-        }
+        val converted = convertFieldValue(field, value)
 
         when {
             path.contains("{${field.name}}") -> {
