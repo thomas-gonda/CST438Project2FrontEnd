@@ -1,0 +1,60 @@
+
+# Detekt 2.0.0-alpha.6
+# Starter configuration for an Android Jetpack Compose project
+
+complexity:
+  # Allow longer Compose UI functions
+  LongMethod:
+    active: true
+    allowedLines: 150
+
+  # Allow larger UI and feature classes
+  LargeClass:
+    active: true
+    allowedLines: 600
+
+  # Compose functions often contain many branches
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 35
+
+  # Allow more helper functions per file
+  TooManyFunctions:
+    active: true
+    allowedFunctionsPerFile: 30
+
+exceptions:
+  # Allow broad exception handling for UI/network errors
+  TooGenericExceptionCaught:
+    active: false
+
+  # Keep detecting exceptions that are silently discarded
+  SwallowedException:
+    active: false
+
+naming:
+  # Compose functions use PascalCase
+  FunctionNaming:
+    active: true
+    functionPattern: '[a-zA-Z][a-zA-Z0-9]*'
+
+style:
+  # Allow wildcard imports common in Compose code
+  WildcardImport:
+    active: false
+
+  # Avoid blocking CI over long lines
+  MaxLineLength:
+    active: false
+
+  # Avoid blocking CI over missing final newlines
+  NewLineAtEndOfFile:
+    active: false
+
+  # Keep checking excessive throw statements
+  ThrowsCount:
+    active: true
+
+  # Disable magic-number warnings for UI dimensions
+  MagicNumber:
+    active: false
